@@ -22,9 +22,19 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Download fpcalc (Chromaprint) so it's bundled into the exe
+        shell: pwsh
+        run: |
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/acoustid/chromaprint/releases/latest"
+          $asset = $release.assets | Where-Object { $_.name -like "*windows-x86_64*.zip" } | Select-Object -First 1
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile fpcalc.zip
+          Expand-Archive -Path fpcalc.zip -DestinationPath fpcalc_extracted -Force
+          $fpcalcExe = Get-ChildItem -Path fpcalc_extracted -Filter fpcalc.exe -Recurse | Select-Object -First 1
+          Copy-Item $fpcalcExe.FullName -Destination fpcalc.exe
+
       - name: Build standalone EXE
         run: |
-          pyinstaller --onefile --windowed --name TuneTidy main.py
+          pyinstaller --onefile --windowed --name TuneTidy --add-binary "fpcalc.exe;." main.py
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
