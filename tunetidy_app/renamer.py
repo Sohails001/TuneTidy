@@ -27,6 +27,14 @@ def build_path(base_dir, pattern, meta, ext):
 
 def move_file(src, dest, dry_run=False):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
+    # Never silently overwrite a different existing file (e.g. two tracks that
+    # both ended up numbered "00" because MusicBrainz had no track-position data).
+    if os.path.exists(dest) and os.path.abspath(dest) != os.path.abspath(src):
+        base, ext = os.path.splitext(dest)
+        n = 2
+        while os.path.exists(f"{base} ({n}){ext}"):
+            n += 1
+        dest = f"{base} ({n}){ext}"
     if dry_run:
         return dest
     if os.path.abspath(src) != os.path.abspath(dest):
