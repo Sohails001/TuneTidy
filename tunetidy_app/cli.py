@@ -23,7 +23,7 @@ def process_file(path, api_key, pattern, out_dir, dry_run, no_cover, log=print):
     try:
         matches = fingerprint.identify(path, api_key)
         if matches:
-            _, rec_id, _, _ = matches[0]
+            _, rec_id = matches[0]
             meta = metadata.get_recording_metadata(rec_id)
     except Exception as e:
         log(f"  Fingerprint lookup failed: {e}")
