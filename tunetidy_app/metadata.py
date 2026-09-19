@@ -6,7 +6,7 @@ mb.set_useragent("TuneTidy", "0.1.0", "https://github.com/yourname/tunetidy")
 
 def get_recording_metadata(recording_id):
     result = mb.get_recording_by_id(
-        recording_id, includes=["artists", "releases", "release-groups"]
+        recording_id, includes=["artists", "releases"]
     )
     rec = result["recording"]
     meta = {
