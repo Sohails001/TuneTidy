@@ -23,10 +23,14 @@ code.
    ```bash
    pip install -r requirements.txt
    ```
-3. Install `fpcalc` (Chromaprint) for fingerprinting and make sure it's on your PATH:
+3. If running from source (not the prebuilt .exe), install `fpcalc` (Chromaprint) for
+   fingerprinting and make sure it's on your PATH:
    - Windows/macOS/Linux builds: https://acoustid.org/chromaprint
    - Debian/Ubuntu: `sudo apt install libchromaprint-tools`
    - macOS (Homebrew): `brew install chromaprint`
+
+   **Note:** the prebuilt Windows `.exe` (built via GitHub Actions) already has
+   `fpcalc` bundled inside it — no separate install needed for that version.
 4. Get a free AcoustID API key: https://acoustid.org/new-application
    Set it as an environment variable:
    ```bash
