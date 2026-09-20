@@ -30,11 +30,16 @@ jobs:
           Invoke-WebRequest -Uri $asset.browser_download_url -OutFile fpcalc.zip
           Expand-Archive -Path fpcalc.zip -DestinationPath fpcalc_extracted -Force
           $fpcalcExe = Get-ChildItem -Path fpcalc_extracted -Filter fpcalc.exe -Recurse | Select-Object -First 1
-          Copy-Item $fpcalcExe.FullName -Destination fpcalc.exe
+          New-Item -ItemType Directory -Force -Path fpcalc_bin | Out-Null
+          # Copy fpcalc.exe AND every file next to it (some builds ship companion
+          # DLLs it needs at runtime) so nothing required is left behind.
+          Copy-Item "$($fpcalcExe.DirectoryName)\*" -Destination fpcalc_bin -Force
+          Write-Host "Bundling these files alongside fpcalc.exe:"
+          Get-ChildItem fpcalc_bin | ForEach-Object { Write-Host " - $($_.Name)" }
 
       - name: Build standalone EXE
         run: |
-          pyinstaller --onefile --windowed --name TuneTidy --add-binary "fpcalc.exe;." main.py
+          pyinstaller --onefile --windowed --name TuneTidy --add-data "fpcalc_bin;." main.py
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
