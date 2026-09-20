@@ -57,6 +57,38 @@ def get_recording_metadata(recording_id):
     return meta
 
 
+def get_candidates(artist, title, local_duration=None, max_duration_diff=12, limit=2):
+    """Like search_by_tags(), but returns up to `limit` scored candidates for a
+    human to review and pick from, instead of auto-picking the single best one."""
+    if not artist or not title:
+        return []
+    result = mb.search_recordings(artist=artist, recording=title, limit=5)
+    recs = result.get("recording-list", [])
+
+    scored = []
+    for rec in recs:
+        cand_length_ms = rec.get("length")
+        if local_duration is not None and cand_length_ms:
+            diff = abs((float(cand_length_ms) / 1000.0) - local_duration)
+            if diff > max_duration_diff:
+                continue
+        cand_title = rec.get("title", "")
+        cand_artist = ", ".join(
+            a["artist"]["name"] for a in rec.get("artist-credit", []) if isinstance(a, dict) and "artist" in a
+        )
+        score = (_similar(artist, cand_artist) + _similar(title, cand_title)) / 2
+        scored.append((score, rec["id"]))
+    scored.sort(key=lambda x: x[0], reverse=True)
+
+    candidates = []
+    for score, rec_id in scored[:limit]:
+        meta = get_recording_metadata(rec_id)
+        meta["_score"] = round(score, 2)
+        meta["_source"] = "MusicBrainz"
+        candidates.append(meta)
+    return candidates
+
+
 def search_by_tags(artist, title, local_duration=None, min_confidence=0.55, max_duration_diff=12):
     """Fallback lookup when fingerprinting isn't available: search MB by existing tags.
 
