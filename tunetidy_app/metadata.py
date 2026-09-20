@@ -57,12 +57,21 @@ def get_recording_metadata(recording_id):
     return meta
 
 
-def search_by_tags(artist, title, min_confidence=0.55):
+def search_by_tags(artist, title, local_duration=None, min_confidence=0.55, max_duration_diff=12):
     """Fallback lookup when fingerprinting isn't available: search MB by existing tags.
 
     Fetches several candidates and only accepts one whose artist AND title are
-    genuinely close matches to what was searched for, instead of blindly trusting
-    the #1 result (which can otherwise return a completely unrelated song).
+    genuinely close matches - and, when we know the local file's duration,
+    whose length is actually close to it too. A song can have a very similar
+    title/artist text match while being a totally different (much longer or
+    shorter) recording - a live version, extended mix, radio edit, etc. - so
+    duration is an independent check that catches mistakes text-matching alone
+    would miss. Candidates with a wildly different duration are rejected
+    outright, before text-similarity is even considered.
+
+    max_duration_diff is in seconds. MusicBrainz doesn't always know a
+    recording's length, in which case we simply can't check it and don't
+    penalize the candidate for that.
     """
     if not artist or not title:
         return None
@@ -74,6 +83,12 @@ def search_by_tags(artist, title, min_confidence=0.55):
 
     best, best_score = None, 0.0
     for rec in recs:
+        cand_length_ms = rec.get("length")
+        if local_duration is not None and cand_length_ms:
+            diff = abs((float(cand_length_ms) / 1000.0) - local_duration)
+            if diff > max_duration_diff:
+                continue  # Wrong-length recording - skip regardless of text match.
+
         cand_title = rec.get("title", "")
         cand_artist = ", ".join(
             a["artist"]["name"] for a in rec.get("artist-credit", []) if isinstance(a, dict) and "artist" in a

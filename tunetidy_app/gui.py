@@ -64,8 +64,9 @@ class App(tk.Tk):
     def run_scan(self, folder):
         files = list(core.find_audio_files(folder))
         self.logmsg(f"Found {len(files)} audio file(s).")
+        results = []
         for f in files:
-            core.process_file(
+            outcome = core.process_file(
                 f,
                 self.apikey_var.get() or None,
                 self.pattern_var.get(),
@@ -74,7 +75,15 @@ class App(tk.Tk):
                 self.nocover_var.get(),
                 log=self.logmsg,
             )
-        self.logmsg("Done.")
+            outcome["path"] = f
+            results.append(outcome)
+
+        report_path = core.write_report(folder, results, self.dryrun_var.get())
+        tagged = sum(1 for r in results if r["status"] == "tagged")
+        skipped = sum(1 for r in results if r["status"] == "skipped")
+        errors = sum(1 for r in results if r["status"] == "error")
+        self.logmsg(f"\nDone. Tagged: {tagged}   Skipped: {skipped}   Errors: {errors}")
+        self.logmsg(f"Full report saved to: {report_path}")
         self.start_button.config(state="normal", text="Start")
 
 
