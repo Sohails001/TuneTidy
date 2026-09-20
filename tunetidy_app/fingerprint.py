@@ -1,17 +1,16 @@
 """AcoustID fingerprinting wrapper.
 
-Uses pyacoustid/chromaprint only to generate the local audio fingerprint (which
-calls the bundled or system 'fpcalc' binary), then talks to the AcoustID lookup
-API directly with `requests` so we can surface the real error message the API
-sends back - pyacoustid's own lookup() swallows this into an unhelpful generic
-"status: error" with no detail, which makes real problems (bad API key, rate
-limiting, etc.) impossible to diagnose.
+Calls the 'fpcalc' binary directly via subprocess (with a hard timeout, so a
+broken/misconfigured fpcalc can never freeze the app), then talks to the
+AcoustID lookup API with `requests` so we get the real error message back
+instead of a vague generic failure.
 """
+import json
 import os
+import subprocess
 import sys
 import time
 
-import acoustid
 import requests
 
 LOOKUP_URL = "https://api.acoustid.org/v2/lookup"
@@ -20,19 +19,47 @@ LOOKUP_URL = "https://api.acoustid.org/v2/lookup"
 _MIN_INTERVAL = 0.34
 _last_call_time = 0.0
 
+# How long to wait for fpcalc before giving up on a single file, rather than
+# hanging forever (e.g. if fpcalc can't start due to a missing dependency).
+_FPCALC_TIMEOUT_SECONDS = 30
 
-def _use_bundled_fpcalc_if_present():
-    """When running as a PyInstaller --onefile exe, fpcalc.exe is bundled inside
-    and extracted to a temp folder at startup (sys._MEIPASS). Point pyacoustid at
-    it via the FPCALC env var so users don't need to install anything separately.
-    """
+
+def _fpcalc_path():
+    """Prefer the copy bundled inside the packaged .exe, if present."""
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         bundled = os.path.join(sys._MEIPASS, "fpcalc.exe")
         if os.path.exists(bundled):
-            os.environ["FPCALC"] = bundled
+            return bundled
+    return os.environ.get("FPCALC", "fpcalc")
 
 
-_use_bundled_fpcalc_if_present()
+def _run_fpcalc(filepath):
+    exe = _fpcalc_path()
+    try:
+        result = subprocess.run(
+            [exe, "-json", filepath],
+            capture_output=True,
+            text=True,
+            timeout=_FPCALC_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError:
+        raise RuntimeError("chromaprint 'fpcalc' not found. Install it and ensure it's on PATH.")
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(
+            "fpcalc did not respond within 30 seconds and was stopped - it may be "
+            "missing a required file to run correctly."
+        )
+
+    if result.returncode != 0:
+        detail = (result.stderr or "").strip() or "unknown error"
+        raise RuntimeError(f"fpcalc could not analyze this file: {detail}")
+
+    try:
+        data = json.loads(result.stdout)
+    except ValueError:
+        raise RuntimeError("fpcalc produced a response that couldn't be read.")
+
+    return data.get("duration"), data.get("fingerprint")
 
 
 def _throttle():
@@ -48,12 +75,9 @@ def identify(filepath, api_key):
     if not api_key:
         return []
 
-    try:
-        duration, fp = acoustid.fingerprint_file(filepath)
-    except acoustid.NoBackendError:
-        raise RuntimeError("chromaprint 'fpcalc' not found. Install it and ensure it's on PATH.")
-    except acoustid.FingerprintGenerationError as e:
-        raise RuntimeError(f"Could not generate an audio fingerprint for this file: {e}")
+    duration, fp = _run_fpcalc(filepath)
+    if not fp or not duration:
+        raise RuntimeError("Could not generate an audio fingerprint for this file.")
 
     _throttle()
     params = {

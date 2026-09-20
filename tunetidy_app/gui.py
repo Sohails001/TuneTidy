@@ -35,7 +35,8 @@ class App(tk.Tk):
         ttk.Checkbutton(frm, text="Dry run (preview only)", variable=self.dryrun_var).grid(row=3, column=0, sticky="w")
         ttk.Checkbutton(frm, text="Skip cover art", variable=self.nocover_var).grid(row=3, column=1, sticky="w")
 
-        ttk.Button(frm, text="Start", command=self.start).grid(row=4, column=1, pady=8)
+        self.start_button = ttk.Button(frm, text="Start", command=self.start)
+        self.start_button.grid(row=4, column=1, pady=8)
 
         self.log_box = scrolledtext.ScrolledText(self, height=22)
         self.log_box.pack(fill="both", expand=True, padx=10, pady=10)
@@ -55,6 +56,9 @@ class App(tk.Tk):
         if not folder:
             self.logmsg("Please choose a folder first.")
             return
+        # Prevent a second click while a scan is already running - previously
+        # this could silently launch a duplicate overlapping scan.
+        self.start_button.config(state="disabled", text="Working...")
         threading.Thread(target=self.run_scan, args=(folder,), daemon=True).start()
 
     def run_scan(self, folder):
@@ -71,6 +75,7 @@ class App(tk.Tk):
                 log=self.logmsg,
             )
         self.logmsg("Done.")
+        self.start_button.config(state="normal", text="Start")
 
 
 def main():
