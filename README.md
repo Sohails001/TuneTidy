@@ -132,6 +132,16 @@ TuneTidy/
   cross-check song length the way the MusicBrainz path does.
 - Windows only, for now (the GitHub Actions build targets `windows-latest`).
 
-README-addition.md
+Contributing
+Bug reports, feature ideas, and pull requests are welcome — see
+CONTRIBUTING.md.
+License
+MIT © Sohail Sher Ali and TuneTidy contributors. Free to use,
+modify, and distribute.
+TuneTidy is an independent project and is not affiliated with or endorsed by
+AudioRanger, OneTagger, or any other commercial tagger. Product names are used
+only to describe compatibility/comparison.
+---
+Created by Sohail Sher Ali · If TuneTidy is useful to you, a ⭐ helps others find it.
 
 [MIT](LICENSE) — free to use, modify, and distribute.
