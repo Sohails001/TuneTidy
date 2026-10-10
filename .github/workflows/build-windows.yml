@@ -6,6 +6,9 @@ on:
       - "v*"
   workflow_dispatch: {}
 
+permissions:
+  contents: write   # needed so the workflow can attach the exe to a Release
+
 jobs:
   build:
     runs-on: windows-latest
@@ -31,8 +34,6 @@ jobs:
           Expand-Archive -Path fpcalc.zip -DestinationPath fpcalc_extracted -Force
           $fpcalcExe = Get-ChildItem -Path fpcalc_extracted -Filter fpcalc.exe -Recurse | Select-Object -First 1
           New-Item -ItemType Directory -Force -Path fpcalc_bin | Out-Null
-          # Copy fpcalc.exe AND every file next to it (some builds ship companion
-          # DLLs it needs at runtime) so nothing required is left behind.
           Copy-Item "$($fpcalcExe.DirectoryName)\*" -Destination fpcalc_bin -Force
           Write-Host "Bundling these files alongside fpcalc.exe:"
           Get-ChildItem fpcalc_bin | ForEach-Object { Write-Host " - $($_.Name)" }
