@@ -132,6 +132,6 @@ TuneTidy/
   cross-check song length the way the MusicBrainz path does.
 - Windows only, for now (the GitHub Actions build targets `windows-latest`).
 
-## License
+README-addition.md
 
 [MIT](LICENSE) — free to use, modify, and distribute.
