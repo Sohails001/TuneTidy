@@ -31,12 +31,12 @@ built from scratch.
 
 ## Screenshots
 
-📸 *Add a screenshot of the main window and the review screen here.*
+## 📸 *Add a screenshot of the main window and the review screen here.*
 Drag a `.png` into this README on GitHub's web editor (Edit → drop image into the
 text box) and it'll generate the right markdown automatically, e.g.:
 ```markdown
-![Main window](docs/screenshot-main.png)
-![Review screen](docs/screenshot-review.png)
+## ![Main window](docs/screenshot-main.png)
+## ![Review screen](docs/screenshot-review.png)
 ```
 
 ## Download
